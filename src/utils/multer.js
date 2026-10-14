@@ -1,46 +1,23 @@
 
-const multer = require('multer');
+const multer = require("multer");
 
-const FILE_TYPE_MAP = {
-    'image/png': 'png',
-    'image/jpeg': 'jpeg',
-    'image/jpg': 'jpg',
-    'image/gif': 'gif',
+const storage = multer.memoryStorage();
+
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+        cb(null, true);
+    } else {
+        cb(new Error("Only image files are allowed"), false);
+    }
 };
 
-const storage = multer.diskStorage({
-
-    destination: function (req, file, cb) {
-
-        const isValid = FILE_TYPE_MAP[file.mimetype];
-
-        let uploadError = new Error('Invalid image type');
-
-        if (isValid) {
-            uploadError = null;
-        }
-
-        cb(uploadError, 'uploads');
-    },
-
-    filename: function (req, file, cb) {
-
-        const fileName = file.originalname
-            .split(' ')
-            .join('-');
-
-        const extension = FILE_TYPE_MAP[file.mimetype];
-
-        cb(
-            null,
-            `${fileName}-${Date.now()}.${extension}`
-        );
-    }
-
-});
-
 const upload = multer({
-    storage: storage
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 5 * 1024 * 1024
+    }
 });
 
 module.exports = upload;
+

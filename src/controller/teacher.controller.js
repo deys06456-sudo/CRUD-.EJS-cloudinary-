@@ -1,6 +1,29 @@
 const Teacher = require("../model/teacher.model");
+const cloudinary = require("../config/cloudinary");
+const { Readable } = require("stream");
+const { resolve } = require("dns");
+
+// Upload image buffer to cloudinary
+
+const uploadCloudinary = (fileBuffer) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream({
+            folder: "teacher-management"
+        },
+            (error, result) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve(result);
+            }
+        );
+        Readable.from(fileBuffer).pipe(stream);
+    });
+};
 
 class teacherController {
+
+    // Teacher List
     async getTeachers(req, res) {
         try {
             const teachers = await Teacher.find({
@@ -56,12 +79,15 @@ class teacherController {
 
             const { Name, Email, Phone, Address, Salary, Experience, Subject, Department, Gender, Status } = req.body;
 
+            let imageUrl;
+            if (req.file) {
+                const result = await uploadCloudinary(req.file.buffer);
+                imageUrl = result.secure_url;
+            }
+
             const teacher = new Teacher({
                 Name, Email, Phone, Address, Salary, Experience, Subject, Department, Gender, Status,
-
-                // IMAGE
-                image: req.file ? req.file.filename : undefined,
-
+                image: imageUrl,
                 is_deleted: false
             });
 
@@ -178,7 +204,8 @@ class teacherController {
             };
 
             if (req.file) {
-                updateData.image = req.file.filename;
+                const result = await uploadCloudinary(req.file.buffer);
+                updateData.image = result.secure_url;
             }
 
             const teacher = await Teacher.findOneAndUpdate(
